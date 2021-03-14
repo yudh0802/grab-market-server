@@ -59,6 +59,29 @@ app.post('/purchase/:id', (req, res) => {
         });
 });
 
+app.post('/cancel/:id', (req, res) => {
+    const { id } = req.params;
+    models.Product.update(
+        {
+            soldout: 0,
+        },
+        {
+            where: {
+                id,
+            },
+        }
+    )
+        .then((result) => {
+            res.send({
+                result: true,
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            res.status(500).send('결제 취소 에러 발생');
+        });
+});
+
 app.get('/products', (req, res) => {
     models.Product.findAll({
         order: [['createdAt', 'DESC']],
@@ -127,6 +150,14 @@ app.get('/products/:id', (req, res) => {
 });
 
 // res.send() -> 여기 괄호 안에는 객체가 담긴다.
+
+app.post('/image', upload.single('image'), (req, res) => {
+    const file = req.file;
+    console.log(file);
+    res.send({
+        imageUrl: file.path,
+    });
+});
 
 app.listen(port, () => {
     console.log('그랩의 서버가 돌아가고 있습니다.');
@@ -213,11 +244,3 @@ app.listen(port, () => {
 // console.log('결과는 이렇단다 : ', result);
 // res.send(result);
 // res.send() -> 여기 괄호 안에는 객체가 담긴다.
-
-app.post('/image', upload.single('image'), (req, res) => {
-    const file = req.file;
-    console.log(file);
-    res.send({
-        imageUrl: file.path,
-    });
-});
