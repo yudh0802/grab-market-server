@@ -14,6 +14,9 @@ const upload = multer({
         },
     }),
 });
+
+const detectProduct = require('./helpers/detectProduct');
+const { prod } = require('@tensorflow/tfjs-node');
 const port = process.env.PORT || 8080;
 
 // app의 등장도 헷갈림..ㅋㅋ
@@ -99,29 +102,60 @@ app.get('/products', (req, res) => {
         });
 });
 
+app.get('/products/:id/recommendation', (req, res) => {
+    const { id } = req.params;
+    models.Product.findOne({
+        where: {
+            id,
+        },
+    })
+        .then((product) => {
+            console.log(product);
+            const type = product.type;
+            models.Product.findAll({
+                where: {
+                    type,
+                    id: {
+                        [models.Sequelize.Op.ne]: id,
+                    },
+                },
+            }).then((products) => {
+                res.send({ products });
+            });
+        })
+        .catch((error) => {
+            console.errpr(error);
+            res.status(500).send('에러가 발생했습니다. 왜?');
+        });
+});
+
 app.post('/products', (req, res) => {
     const body = req.body;
     const { name, description, price, seller, imageUrl } = body;
     if (!name || !description || !price || !seller || !imageUrl) {
         res.status(400).send('모든 필드를 입력해주세요');
     }
-    models.Product.create({
-        name,
-        description,
-        price,
-        seller,
-        imageUrl,
-    })
-        .then((result) => {
-            console.log('상품 생성 결과 : ', result);
-            res.send({
-                result: result,
-            });
+
+    detectProduct(imageUrl, (type) => {
+        models.Product.create({
+            name,
+            description,
+            price,
+            seller,
+            imageUrl,
+            type,
         })
-        .catch((err) => {
-            console.error(err);
-            res.status(400).send('상품 업로드에 문제가 발생했습니다');
-        });
+            .then((result) => {
+                console.log('상품 생성 결과 : ', result);
+                res.send({
+                    result: result,
+                });
+            })
+            .catch((err) => {
+                console.error(err);
+                res.status(400).send('상품 업로드에 문제가 발생했습니다');
+            });
+    });
 
     //     // res.send({
     //     //     body: body,
